@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Page</title>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <h1>Chat Page</h1>
+    <h2>Chat Room</h2>
+    <p>This is a simple chat room using Socket.IO.</p>
+
+    <button onclick="joinRoom('gbc')">Join Room</button>
+    <button onclick="leaveRoom('gbc')">Leave GBC Room</button>
+    <button onclick="joinRoom('fifa')">Join Fifa Room</button>
+    <button onclick="leaveRoom('fifa')">Leave Fifa Room</button>
+
+    <h2 id="socket-id-display">Socket ID: </h2>
+    <h3 id="roomName"></h3>
+
+    <h3>Messages:</h3>
+    <div id="messagesDiv"></div>
+
+    <div style="margin-top: 20px;">
+        <label for="groupMessage">Send Group Message: </label>
+        <input type="text" id="groupMessage" placeholder="Type your message here">
+        <button onclick="sendGroupMessage()">Send Message</button>
+    </div>
+
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messagesDiv');
+
+        // Update Socket ID display on connection
+        socket.on('connect', () => {
+            document.getElementById('socket-id-display').innerText = `Socket ID: ${socket.id}`;
+        });
+
+        // Example to send group message
+        function sendGroupMessage() {
+            const room = document.getElementById('roomName').innerText || 'gbc'; // Default to 'gbc'
+            const txtMessage = document.getElementById('groupMessage');
+
+            const data = {
+                sender: socket.id,
+                room: room,
+                message: txtMessage.value
+            };
+
+            socket.emit('roomMessage', { room: room, message: txtMessage.value });
+            console.log(`Sent message to room ${room}: ${txtMessage.value}`);
+
+            const messageElement = document.createElement('p');
+            messageElement.innerHTML = `<b>ID: ${data.sender} - Room: ${data.room} - Message: ${data.message}</b>`;
+            messagesDiv.appendChild(messageElement);
+
+            txtMessage.value = '';
+        }
+
+        // Event listener for errors
+        socket.on('error', (error) => {
+            console.error('Socket.IO error:', error);
+        });
+
+        // Disconnect event listener
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        function joinRoom(room) {
+            document.getElementById('roomName').innerText = room;
+            socket.emit('joinRoom', room);
+            console.log(`Joining room: ${room}`);
+        }
+
+        function leaveRoom(room) {
+            socket.emit('leaveRoom', room);
+            console.log(`Leaving room: ${room}`);
+        }
+
+        // Listen for messages from the server for the current room
+        socket.on('roomMessage', (data) => {
+            const messageElement = document.createElement('p');
+            messageElement.innerHTML = `<b>ID: ${data.sender} - Room: ${data.room} - Message: ${data.message}</b>`;
+            messagesDiv.appendChild(messageElement);
+        });
+    </script>
+</body>
+</html>
